@@ -23,9 +23,9 @@ git clone https://github.com/dmix/macos $HOME/macos
 
 See my other config and init dirs:
 
-- 🔴 [ZSH](https://github.com/dmix/zsh),
+- 🔴 [ZSH](https://github.com/dmix/zsh)
 
-- 🔵 [neovim](https://github.com/dmix/vim),
+- 🔵 [Neovim](https://github.com/dmix/neovim)
 
 
 ### Whom?
