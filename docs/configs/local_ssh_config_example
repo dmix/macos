@@ -1,0 +1,8 @@
+Host name
+    HostName 127.0.0.1
+    Port 9999
+    User dmix
+    IdentitiesOnly yes
+    IdentityFile ~/.ssh/id_ed25519
+    Compression yes
+

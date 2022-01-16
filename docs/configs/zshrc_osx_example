@@ -1,0 +1,306 @@
+# --- EXPORTS ---
+export ZSH=${HOME}/zsh
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/tim/bin"
+export MANPATH="/usr/local/man:$MANPATH"
+export LANG=en_US.UTF-8
+export ARCHFLAGS="-arch x86_64"
+export SSH_KEY_PATH="~/.ssh/dsa_id"
+export SSH_AUTH_SOCK=$(launchctl getenv SSH_AUTH_SOCK)
+export PATH="/usr/local/sbin:$PATH"
+
+
+# --- OPTIONS ---
+# awesome cd movements from zshkit
+setopt autocd autopushd pushdminus pushdsilent pushdtohome cdablevars
+DIRSTACKSIZE=5
+# Enable extended globbing
+setopt extendedglob
+# Allow [ or ] whereever you want
+unsetopt nomatch
+# makes color constants available
+autoload -U colors
+colors
+# enable colored output from ls, etc. on FreeBSD-based systems
+export CLICOLOR=1A
+export VISUAL=vim
+export EDITOR=$VISUAL
+
+
+export EDITOR='nvim'
+
+
+
+
+#autoload -Uz async && async
+## AUTOFU
+#zstyle ':completion:*' completer _oldlist _complete
+#zle -N zle-keymap-select auto-fu-zle-keymap-select
+
+# Vi mode
+bindkey -v
+bindkey "^F" vi-cmd-mode
+
+# handy keybindings
+bindkey "^A" beginning-of-line
+bindkey "^E" end-of-line
+bindkey "^K" kill-line
+bindkey "^R" history-incremental-search-backward
+bindkey "^P" history-search-backward
+bindkey "^Y" accept-and-hold
+bindkey "^N" insert-last-word
+
+# repeat last command with sudo
+bindkey -s "^S" "^[Isudo ^N^[A" # "t" for "toughguy"
+
+# search history with fzf
+bindkey -s "^H" "^[Ihistory | fzf-tmux --tac --no-sort^[A"
+alias hh="history | fzf --tac --no-sort"
+
+# DIRECTORY HISTORY
+# bind UP and DOWN arrow keys (compatibility fallback
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+# bind k and j for VI mode
+bindkey -M vicmd 'k' history-substring-search-up
+bindkey -M vicmd 'j' history-substring-search-down
+# Bind CTRL+k and CTRL+j to substring search
+bindkey '^j' history-substring-search-up
+bindkey '^k' history-substring-search-down
+
+# bind f to autosuggest move forward
+bindkey '^f' vi-forward-word
+export ZSH_DIR=$HOME/zsh
+zlog() {
+	print $1
+}
+
+update-zsh() {
+	zlog gray "Updating..."
+	cd $ZSH_DIR
+	git status
+	git commit -am 'Updates on $DATE'
+	git pull --rebase origin master
+	git push origin master
+	zplug update
+	zplug clean
+	zsh
+	zlog green "Completed."
+}
+
+osx-rmdirs() {
+	local rmdirs=(
+		Desktop/
+		Documents/
+		Movies/
+		Music/
+		Public/
+		Downloads/
+		Pictures
+	)
+
+	for rdir in $rmdirs; do
+		[ -d $rdir ] && sudo rm -rf $rdir && print "Deleted $rdir"
+	done
+
+	[ -d ~/bin ] && mv bin/* ~/.bin && rm -rf ~/bin
+	[ -d ~/Applications/ ]  && find ~/Applications -mindepth 1 -maxdepth 2 -type d  -print0 | xargs -0 -J % mv % /Applications && rm -rf ~/Applications
+}
+
+
+
+# fzf (https://github.com/junegunn/fzf)
+# --------------------------------------------------------------------
+
+# fd - cd to selected directory
+fd() {
+  DIR="find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux" \
+    && cd "$DIR"
+}
+
+# fda - including hidden directories
+fda() {
+  DIR="find ${1:-.} -type d 2> /dev/null | fzf-tmux" && cd "$DIR"
+}
+
+# Figlet font selector
+fgl() {
+  cd /usr/local/Cellar/figlet/*/share/figlet/fonts
+  BASE="pwd"
+  figlet -f "ls *.flf | sort | fzf" $*
+}
+
+# fbr - checkout git branch
+fbr() {
+  local branches branch
+  branches=$(git branch --all | grep -v HEAD) &&
+  branch=$(print "$branches" |
+	   fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+  git checkout $(print "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+}
+
+# fco - checkout git branch/tag
+fco() {
+  local tags branches target
+  tags=$(
+    git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
+  branches=$(
+    git branch --all | grep -v HEAD             |
+    sed "s/.* //"    | sed "s#remotes/[^/]*/##" |
+    sort -u          | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}') || return
+  target=$(
+    (print "$tags"; print "$branches") |
+    fzf-tmux -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
+  git checkout $(print "$target" | awk '{print $2}')
+}
+
+# fshow - git commit browser
+fshow() {
+  git log --graph --color=always \
+      --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+  fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
+      --bind "ctrl-m:execute:
+		print '{}' | grep -o '[a-f0-9]\{7\}' | head -1 |
+		xargs -I % sh -c 'git show --color=always % | less -R'"
+}
+
+# ftags - search ctags
+ftags() {
+  local line
+  [ -e tags ] &&
+  line=$(
+    awk 'BEGIN { FS="\t" } !/^!/ {print toupper($4)"\t"$1"\t"$2"\t"$3}' tags |
+    cut -c1-80 | fzf --nth=1,2
+  ) && $EDITOR $(cut -f3 <<< "$line") -c "set nocst" \
+				      -c "silent tag $(cut -f2 <<< "$line")"
+}
+
+# fe [FUZZY PATTERN] - Open the selected file with the default editor
+#   - Bypass fuzzy finder if there's only one match (--select-1)
+#   - Exit if there's no match (--exit-0)
+fe() {
+  local file
+  file=$(fzf-tmux --query="$1" --select-1 --exit-0)
+  [ -n "$file" ] && ${EDITOR:-vim} "$file"
+}
+
+# Modified version where you can press
+#   - CTRL-O to open with "open" command,
+#   - CTRL-E or Enter key to open with the $EDITOR
+fo() {
+  local out file key
+  out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
+  key=$(head -1 <<< "$out")
+  file=$(head -2 <<< "$out" | tail -1)
+  if [ -n "$file" ]; then
+    [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
+  fi
+}
+
+if [ -n "$TMUX_PANE" ]; then
+  fzf_tmux_helper() {
+    local sz=$1;  shift
+    local cmd=$1; shift
+    tmux split-window $sz \
+      "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
+  }
+
+  # https://github.com/wellle/tmux-complete.vim
+  fzf_tmux_words() {
+    fzf_tmux_helper \
+      '-p 40' \
+      'tmuxwords.rb --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
+  }
+
+  # ftpane - switch pane (@george-b)
+  ftpane() {
+    local panes current_window current_pane target target_window target_pane
+    panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
+    current_pane=$(tmux display-message -p '#I:#P')
+    current_window=$(tmux display-message -p '#I')
+
+    target=$(print "$panes" | grep -v "$current_pane" | fzf +m --reverse) || return
+
+    target_window=$(print $target | awk 'BEGIN{FS=":|-"} {print$1}')
+    target_pane=$(print $target | awk 'BEGIN{FS=":|-"} {print$2}' | cut -c 1)
+
+    if [[ $current_window -eq $target_window ]]; then
+      tmux select-pane -t ${target_window}.${target_pane}
+    else
+      tmux select-pane -t ${target_window}.${target_pane} &&
+      tmux select-window -t $target_window
+    fi
+  }
+
+  # Bind CTRL-X-CTRL-T to tmuxwords.sh
+  bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
+
+elif [ -d ~/github/iTerm2-Color-Schemes/ ]; then
+  ftheme() {
+    local base
+    base=~/github/iTerm2-Color-Schemes
+    $base/tools/preview.rb "$(
+      ls {$base/schemes,~/.vim/plugged/seoul256.vim/iterm2}/*.itermcolors | fzf)"
+  }
+fi
+
+# Switch tmux-sessions
+fs() {
+  local session
+  session=$(tmux list-sessions -F "#{session_name}" | \
+    fzf-tmux --query="$1" --select-1 --exit-0) &&
+  tmux switch-client -t "$session"
+}
+
+# RVM integration
+frb() {
+  local rb
+  rb=$(
+    (print system; rvm list | grep ruby | cut -c 4-) |
+       awk '{print $1}' |
+       fzf-tmux -l 30 +m --reverse) && rvm use $rb
+}
+
+# Z integration
+source $HOME/zsh/z.sh
+unalias z 2> /dev/null
+z() {
+  if [[ -z "$*" ]]; then
+    cd "$(_z -l 2>&1 | fzf-tmux +s --tac | sed 's/^[0-9,.]* *//')"
+  else
+    _z "$@"
+  fi
+}
+
+# v - open files in ~/.viminfo
+v() {
+  local files
+  files=$(grep '^>' ~/.viminfo | cut -c3- |
+	  while read line; do
+	    [ -f "${line/\~/$HOME}" ] && print "$line"
+	  done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
+}
+
+# c - browse chrome history
+fchrome() {
+  local cols sep
+  export cols=$(( COLUMNS / 3 ))
+  export sep='{::}'
+
+  cp -f ~/Library/Application\ Support/Google/Chrome/Default/History /tmp/h
+  sqlite3 -separator $sep /tmp/h \
+    "select title, url from urls order by last_visit_time desc" |
+  ruby -ne '
+    cols = ENV["cols"].to_i
+    title, url = $_.split(ENV["sep"])
+    len = 0
+    puts "\x1b[36m" + title.each_char.take_while { |e|
+      if len < cols
+	len += e =~ /\p{Han}|\p{Katakana}|\p{Hiragana}|\p{Hangul}/ ? 2 : 1
+      end
+    }.join + " " * (2 + cols - len) + "\x1b[m" + url' |
+  fzf --ansi --multi --no-hscroll --tiebreak=index |
+  sed 's#.*\(https*://\)#\1#' | xargs open
+}
+
+
+#[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
