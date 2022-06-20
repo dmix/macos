@@ -5,6 +5,12 @@
 # ------------------------------------------------------------
 
 echo "> Setting up OSX!"
+echo ">"
+echo "> -----------------------------------------------------"
+echo "> DISABLE SIP PROTECTION SO TILING WM INSTALLS PROPERLY"
+echo "> https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection"
+echo "> -----------------------------------------------------"
+echo ">"
 
 # Sudo
 # ------------------------------------------------------------
@@ -37,11 +43,11 @@ brew upgrade --all
 
 ./asdf.zsh
 ./install-neovim.zsh
-./disable-macos-agents.zsh
-./osx.bootstrap.zsh
-./osx.programming.zsh
-./osx.settings.zsh
-./osx.desktop.zsh
+./macos-disable-agents.zsh
+./macos-settings.zsh
+./macos-bootstrap.zsh
+./macos-programming.zsh
+./macos-desktop.zsh
 
 cd /usr/local/lib && sudo ln -s ../../lib/libSystem.B.dylib libgcc_s.10.4.dylib
 

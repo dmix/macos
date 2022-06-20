@@ -4,6 +4,8 @@
 # OSX Programming Libraries
 # ------------------------------------------------------------
 
+# USE ASDF INSTEAD
+#
 zlog "> Installing OSX programming libraries..."
 
 
@@ -11,31 +13,6 @@ zlog "> Installing OSX programming libraries..."
 # -----------------------------------------------------------------------------
 sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-
-# Build tools
-# -----------------------------------------------------------------------------
-
-# brew install \
-#     node \
-#     pyen \
-#     golang \
-#     imagemagick --with-webp \
-#     rhino \
-#     heroku-toolbelt
-
-# heroku update
-
-# Ruby
-# -----------------------------------------------------------------------------
-
-if [[ -d $HOME/.rvm ]]; then
-    zlog '> Installing RVM'
-    gpg --keyserver hkp://keys.gnupg.net \
-	--recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
-    curl -sSL https://get.rvm.io
-    rvm install ruby-2.6.9
-fi
-
 
 # Languages + Tooling
 # -----------------------------------------------------------------------------
@@ -73,27 +50,28 @@ cargo install racer
 
 # brew link node
 # brew install yarn
-npm install -g brunch
+# npm install -g brunch
 # npm install -g elm-oracle
 
 # Typescript
 # -----------------------------------------------------------------------------
 
-npm install -g typescript typings
-typings init
-typings install github:mafredri/phoenix-typings --global --save
+npm install -g typescript
 
 # Databases
 # -----------------------------------------------------------------------------
 
-brew services start postgresql
-createuser postgres --createdb
+# brew services start redis
+# brew services start postgresql
+# createuser postgres --createdb
+# brew cask install postico
+# createuser postgres --createdb
 
 # Linters
 # -----------------------------------------------------------------------------
-
-pip3 install yamllint \
-             proselint
+#
+# pip3 install yamllint \
+#              proselint
 
 zlog "> DONE"
 zlog "> ----"
